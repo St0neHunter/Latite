@@ -4,10 +4,13 @@
 #include <algorithm>
 #include <shared_mutex>
 
+#include "util/ErrorHandler.h"
+
 class IEventManager {
 public:
 	template <typename T>
 	bool dispatch(T& ev) requires std::derived_from<T, Event> {
+		BEGIN_ERROR_HANDLER
 		for (auto& pair : listeners) {
 			if (pair.first == T::hash) {
 				if (pair.second.listener->shouldListen() || pair.second.callWhileInactive) {
@@ -23,6 +26,7 @@ public:
 			}
 		}
 		return false;
+		END_ERROR_HANDLER
 	}
 
 	template <typename T>

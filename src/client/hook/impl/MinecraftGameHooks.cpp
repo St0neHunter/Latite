@@ -5,6 +5,7 @@
 #include "client/event/Eventing.h"
 #include "client/script/PluginManager.h"
 #include "client/Latite.h"
+#include "util/ErrorHandler.h"
 
 namespace {
 	std::shared_ptr<Hook> onAppSuspendedHook;
@@ -13,6 +14,7 @@ namespace {
 }
 
 void* MinecraftGameHooks::onAppSuspended(SDK::MinecraftGame* game,void*a,void*b,void*c) {
+	BEGIN_ERROR_HANDLER
 	AppSuspendedEvent ev{};
 	Eventing::get().dispatch(ev);
 	{
@@ -21,18 +23,22 @@ void* MinecraftGameHooks::onAppSuspended(SDK::MinecraftGame* game,void*a,void*b,
 	}
 
 	return onAppSuspendedHook->oFunc<decltype(&onAppSuspended)>()(game,a,b,c);
+	END_ERROR_HANDLER
 }
 
 void MinecraftGameHooks::onDeviceLost(SDK::MinecraftGame* game) {
+	BEGIN_ERROR_HANDLER
 	FocusLostEvent ev{};
 	
 	if (Eventing::get().dispatch(ev))
 		return;
 	
 	onDeviceLostHook->oFunc<decltype(&onDeviceLost)>()(game);
+	END_ERROR_HANDLER
 }
 
 void __fastcall MinecraftGameHooks::_update(SDK::MinecraftGame* game) {
+	BEGIN_ERROR_HANDLER
 	_updateHook->oFunc<decltype(&_update)>()(game);
 	UpdateEvent ev{};
 
@@ -42,13 +48,16 @@ void __fastcall MinecraftGameHooks::_update(SDK::MinecraftGame* game) {
 	}
 
 	Eventing::get().dispatch(ev);
+	END_ERROR_HANDLER
 }
 
 MinecraftGameHooks::MinecraftGameHooks() {
+	BEGIN_ERROR_HANDLER
 	onAppSuspendedHook = addHook(Signatures::MinecraftGame_onAppSuspended.result, onAppSuspended,
 		"MinecraftGame::onAppSuspended");
 	onDeviceLostHook = addHook(Signatures::MinecraftGame_onDeviceLost.result, onDeviceLost,
 		"MinecraftGame::onDeviceLost");
 	_updateHook = addHook(Signatures::MinecraftGame__update.result, _update,
 		"MinecraftGame::_update");
+	END_ERROR_HANDLER
 }

@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "JsWorkerThread.h"
+#include "util/ErrorHandler.h"
 
 JsValueRef JsWorkerThread::loadFile(JsValueRef callee, bool isConstructor, JsValueRef* arguments, unsigned short argCount, void* callbackState) {
+	BEGIN_ERROR_HANDLER
 	auto thi = reinterpret_cast<JsWorkerThread*>(callbackState);
 	if (!Chakra::VerifyArgCount(argCount, 2)) return JS_INVALID_REFERENCE;
 	if (!Chakra::VerifyParameters({ {arguments[1], JsString} })) return JS_INVALID_REFERENCE;
@@ -16,9 +18,11 @@ JsValueRef JsWorkerThread::loadFile(JsValueRef callee, bool isConstructor, JsVal
 
 	auto thread = new std::thread(threadMain);
 	return thi->construct(thread);
+	END_ERROR_HANDLER
 }
 
 void JsWorkerThread::threadMain(std::wstring script) {
+	BEGIN_ERROR_HANDLER
 	JsRuntimeHandle handle;
 	JsContextRef context;
 	JsValueRef result;
@@ -31,4 +35,5 @@ void JsWorkerThread::threadMain(std::wstring script) {
 	JS::JsRelease(result, nullptr);
 	JS::JsCollectGarbage(handle);
 	JS::JsDisposeRuntime(handle);
+	END_ERROR_HANDLER
 }

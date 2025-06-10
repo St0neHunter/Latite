@@ -7,6 +7,7 @@
 #include "client/script/PluginManager.h"
 #include "../Hooks.h"
 #include "PlayerHooks.h"
+#include "util/ErrorHandler.h"
 
 namespace {
 	std::shared_ptr<Hook> Level_tickHook;
@@ -36,6 +37,7 @@ namespace {
 }
 
 void GenericHooks::Level_tick(SDK::Level* level) {
+	BEGIN_ERROR_HANDLER
 	if (level == SDK::ClientInstance::get()->minecraft->getLevel()) {
 		// Clientside level
 		// dispatch clientside tick event..
@@ -55,9 +57,11 @@ void GenericHooks::Level_tick(SDK::Level* level) {
 		Latite::getPluginManager().dispatchEvent(sEv);
 	}
 	Level_tickHook->oFunc<decltype(&Level_tick)>()(level);
+	END_ERROR_HANDLER
 }
 
 void* GenericHooks::ChatScreenController_sendChatMessage(void* controller, std::string& message) {
+	BEGIN_ERROR_HANDLER
 	if (message.starts_with(Latite::getCommandManager().prefix)) {
 		Latite::getCommandManager().runCommand(message);
 		return 0;
@@ -74,9 +78,11 @@ void* GenericHooks::ChatScreenController_sendChatMessage(void* controller, std::
 	}
 
 	return ChatScreenController_sendChatMesageHook->oFunc<decltype(&ChatScreenController_sendChatMessage)>()(controller, message);
+	END_ERROR_HANDLER
 }
 
 void* GenericHooks::GameRenderer_renderCurrentFrame(void* rend) {
+	BEGIN_ERROR_HANDLER
 	// this causes the jitter bug
 	//{
 	//	RenderGameEvent ev{};
@@ -84,11 +90,11 @@ void* GenericHooks::GameRenderer_renderCurrentFrame(void* rend) {
 	//}
 
 	return GameRenderer_renderCurrentFrameHook->oFunc<decltype(&GameRenderer_renderCurrentFrame)>()(rend);
+	END_ERROR_HANDLER
 }
 
 void GenericHooks::Keyboard_feed(int key, bool isDown) {
-	
-
+	BEGIN_ERROR_HANDLER
 	{
 		PluginManager::Event::Value val{L"isDown"};
 		val.val = isDown;
@@ -112,10 +118,11 @@ void GenericHooks::Keyboard_feed(int key, bool isDown) {
 	if (Eventing::get().dispatch(ev)) return;
 
 	return Keyboard_feedHook->oFunc<decltype(&Keyboard_feed)>()(key, isDown);
+	END_ERROR_HANDLER
 }
 
 void GenericHooks::onClick(ClickMap* map, char clickType, char isDownWheelDelta, uintptr_t a4, int16_t a5, int16_t a6, int16_t a7, char a8) {
-
+	BEGIN_ERROR_HANDLER
 	if (clickType > 0) {
 		Vec2& mousePos = SDK::ClientInstance::get()->cursorPos;
 
@@ -152,24 +159,30 @@ void GenericHooks::onClick(ClickMap* map, char clickType, char isDownWheelDelta,
 	if (Eventing::get().dispatch(ev)) return;
 
 	return OnClickHook->oFunc<decltype(&onClick)>()(map, clickType, isDownWheelDelta, a4, a5, a6, a7, a8);
+	END_ERROR_HANDLER
 }
 
 BOOL __stdcall GenericHooks::hkLoadLibraryW(LPCWSTR lib) {
+	BEGIN_ERROR_HANDLER
 	// prevent double injections
 #ifdef LATITE_BETA
 	abort();
 #endif
 	return 0;
+	END_ERROR_HANDLER
 }
 
 int __fastcall GenericHooks::RakPeer_getAveragePing(void* obj, char* guidOrAddy) {
+	BEGIN_ERROR_HANDLER
 	int ping = AveragePingHook->oFunc<decltype(&RakPeer_getAveragePing)>()(obj, guidOrAddy);
 	AveragePingEvent ev{ ping };
 	Eventing::get().dispatch(ev);
 	return ping;
+	END_ERROR_HANDLER
 }
 
 void __fastcall GenericHooks::LocalPlayer_applyTurnDelta(void* obj, Vec2& rot) {
+	BEGIN_ERROR_HANDLER
 	float oSens = 1.f;
 	SensitivityEvent sensEv{ oSens };
 	Eventing::get().dispatch(sensEv);
@@ -200,9 +213,11 @@ void __fastcall GenericHooks::LocalPlayer_applyTurnDelta(void* obj, Vec2& rot) {
 	}
 	lerpRot = { 0, 0 };
 	TurnDeltaHook->oFunc<decltype(&LocalPlayer_applyTurnDelta)>()(obj, rot);
+	END_ERROR_HANDLER
 }
 
 void __fastcall GenericHooks::MoveInputHandler_tick(void* obj, void* proxy) {
+	BEGIN_ERROR_HANDLER
 	SDK::MoveInputComponent* hand = reinterpret_cast<SDK::MoveInputComponent*>(obj);
 	{
 		BeforeMoveEvent ev{ hand };
@@ -213,6 +228,7 @@ void __fastcall GenericHooks::MoveInputHandler_tick(void* obj, void* proxy) {
 		AfterMoveEvent ev{ hand };
 		Eventing::get().dispatch(ev);
 	}
+	END_ERROR_HANDLER
 }
 
 void GenericHooks::ClientInputUpdateSystem_tickBaseInput(uintptr_t** a1, void* a2, uintptr_t* a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7, uintptr_t a8, uintptr_t a9, uintptr_t a10, uintptr_t a11,
@@ -224,7 +240,7 @@ void GenericHooks::ClientInputUpdateSystem_tickBaseInput(uintptr_t** a1, void* a
 	char a17,
 	char a18,
 	char a19) {
-
+	BEGIN_ERROR_HANDLER
 	SDK::MoveInputComponent* hand = SDK::ClientInstance::get()->getLocalPlayer()->getMoveInputComponent();
 	{
 		PluginManager::Event ev{ L"pre-move", {}, true };
@@ -247,9 +263,9 @@ void GenericHooks::ClientInputUpdateSystem_tickBaseInput(uintptr_t** a1, void* a
 
 	{
 		PluginManager::Event ev{ L"post-move", {}, false };
-
 		Latite::getPluginManager().dispatchEvent(ev);
 	}
+	END_ERROR_HANDLER
 }
 
 void __fastcall GenericHooks::CameraViewBob(void* a, void* b, void* c) {

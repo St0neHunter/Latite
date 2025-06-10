@@ -8,12 +8,14 @@
 #include "sdk/common/client/gui/controls/UIControl.h"
 #include "../Hooks.h"
 #include <client/script/PluginManager.h>
+#include "util/ErrorHandler.h"
 
 namespace {
 	std::shared_ptr<Hook> setupAndRenderHook;
 }
 
 void __fastcall ScreenViewHooks::setupAndRender(SDK::ScreenView* view, void* ctx) {
+	BEGIN_ERROR_HANDLER
 	setupAndRenderHook->oFunc<decltype(&setupAndRender)>()(view, ctx);
 	RenderLayerEvent ev{ view, reinterpret_cast<SDK::MinecraftUIRenderContext*>(ctx) };
 	Eventing::get().dispatch(ev);
@@ -33,9 +35,12 @@ void __fastcall ScreenViewHooks::setupAndRender(SDK::ScreenView* view, void* ctx
 
 	RenderGameEvent evt{ };
 	Eventing::get().dispatch(evt);
+	END_ERROR_HANDLER
 }
 
 ScreenViewHooks::ScreenViewHooks() : HookGroup("ScreenView") {
+	BEGIN_ERROR_HANDLER
 	setupAndRenderHook = addHook(Signatures::ScreenView_setupAndRender.result, setupAndRender,
 		"ScreenView::setupAndRender");
+	END_ERROR_HANDLER
 }

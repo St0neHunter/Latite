@@ -3,6 +3,8 @@
 #include <functional>
 #include <util/ChakraUtil.h>
 
+#include "util/ErrorHandler.h"
+
 class JsScript {
 public:
 	JsContextRef ctx;
@@ -69,8 +71,10 @@ public:
 		}
 
 		void run() {
+			BEGIN_ERROR_HANDLER
 			thr = std::make_shared<std::thread>(std::thread(initFunc, this));
 			thr->detach();
+			END_ERROR_HANDLER
 		}
 
 		~AsyncOperation() {

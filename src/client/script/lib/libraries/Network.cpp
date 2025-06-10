@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Network.h"
-
+#include "util/ErrorHandler.h"
 
 using namespace winrt;
 using namespace winrt::Windows::Web::Http;
@@ -37,6 +37,7 @@ void Network::deserializeHeaders(winrt::Windows::Web::Http::IHttpContent& conten
 }
 
 JsValueRef Network::get(JsValueRef callee, bool isConstructor, JsValueRef* arguments, unsigned short argCount, void* callbackState) {
+	BEGIN_ERROR_HANDLER
 	// TODO: Does not support contentType or custom headers
 	// This whole function and NetAsyncOperation should probably be rewritten to not use threads, because we don't even need 
 	// another thread to do async network operations in the first place.
@@ -48,6 +49,7 @@ JsValueRef Network::get(JsValueRef callee, bool isConstructor, JsValueRef* argum
 	
 	auto thi = reinterpret_cast<Network*>(callbackState);
 	auto op = std::make_shared<NetAsyncOperation>(arguments[3], [](JsScript::AsyncOperation* op_) {
+		BEGIN_ERROR_HANDLER
 		auto op = reinterpret_cast<NetAsyncOperation*>(op_);
 		auto http = HttpClient();
 
@@ -71,7 +73,8 @@ JsValueRef Network::get(JsValueRef callee, bool isConstructor, JsValueRef* argum
 			op->winrtErr = err.message();
 		}
 		op->flagDone = true;
-		}, thi);
+		END_ERROR_HANDLER
+	}, thi);
 
 	op->url = Chakra::GetString(arguments[1]);
 
@@ -79,6 +82,7 @@ JsValueRef Network::get(JsValueRef callee, bool isConstructor, JsValueRef* argum
 	
 	thi->owner->pendingOperations.push_back(op);
 	return ret;
+	END_ERROR_HANDLER
 }
 
 JsValueRef Network::getSync(JsValueRef callee, bool isConstructor, JsValueRef* arguments, unsigned short argCount, void* callbackState) {

@@ -463,6 +463,7 @@ SDK::Font* Latite::getFont() {
 }
 
 void Latite::initialize(HINSTANCE hInst) {
+    BEGIN_ERROR_HANDLER
     this->dllInst = hInst;
 
     Latite::getEventing().listen<UpdateEvent>(this, (EventListenerFunc)&Latite::onUpdate, 2);
@@ -491,9 +492,11 @@ void Latite::initialize(HINSTANCE hInst) {
     //if (SDK::internalVers < SDK::V1_20) {
     //    patchKey();
     //}
+    END_ERROR_HANDLER
 }
 
 void Latite::threadsafeInit() {
+    BEGIN_ERROR_HANDLER
     this->gameThreadId = std::this_thread::get_id();
     // TODO: latite beta only
     //if (SDK::ClientInstance::get()->minecraftGame->xuid.size() > 0) wnd->postXUID();
@@ -517,6 +520,7 @@ void Latite::threadsafeInit() {
     Latite::getCommandManager().prefix = Latite::get().getCommandPrefix();
     Latite::getNotifications().push(LocalizeString::get("client.intro.welcome"));
     Latite::getNotifications().push(util::FormatWString(LocalizeString::get("client.intro.menubutton"), { util::StrToWStr(util::KeyToString(Latite::get().getMenuKey().value)) }));
+    END_ERROR_HANDLER
 }
 
 void Latite::patchKey() {

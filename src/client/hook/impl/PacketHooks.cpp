@@ -2,6 +2,7 @@
 #include "PacketHooks.h"
 #include "client/script/PluginManager.h"
 #include <sdk/common/network/MinecraftPackets.h>
+#include "util/ErrorHandler.h"
 
 namespace {
 	std::shared_ptr<Hook> SetTitlePacketRead;
@@ -13,6 +14,7 @@ namespace {
 }
 
 void PacketHooks::PacketSender_sendToServer(SDK::PacketSender* sender, SDK::Packet* packet) {
+	BEGIN_ERROR_HANDLER
 	SendPacketEvent ev{ packet };
 
 	if (Eventing::get().dispatch(ev)) {
@@ -20,15 +22,19 @@ void PacketHooks::PacketSender_sendToServer(SDK::PacketSender* sender, SDK::Pack
 	}
 
 	SendToServerHook->oFunc<decltype(&PacketSender_sendToServer)>()(sender, packet);
+	END_ERROR_HANDLER
 }
 
 std::shared_ptr<SDK::Packet> PacketHooks::MinecraftPackets_createPacket(SDK::PacketID packetId) {
+	BEGIN_ERROR_HANDLER
 	auto genPacket = CreatePacketHook->oFunc<decltype(&MinecraftPackets_createPacket)>()(packetId);
 	
 	return genPacket;
+	END_ERROR_HANDLER
 }
 
 void PacketHooks::PacketHandlerDispatcherInstance_handle(void* instance, void* networkIdentifier, void* netEventCallback, std::shared_ptr<SDK::Packet>& packet) {
+	BEGIN_ERROR_HANDLER
 	auto& hook = PacketHookArray[(size_t)packet->getID()];
 
 	if (Latite::isMainThread()) {
@@ -171,9 +177,11 @@ void PacketHooks::PacketHandlerDispatcherInstance_handle(void* instance, void* n
 		}
 	}
 	hook->oFunc<decltype(&PacketHandlerDispatcherInstance_handle)>()(instance, networkIdentifier, netEventCallback, packet);
+	END_ERROR_HANDLER
 }
 
 PacketHooks::PacketHooks() {
+	BEGIN_ERROR_HANDLER
 	//CreatePacketHook = addHook(Signatures::MinecraftPackets_createPacket.result,
 	//    MinecraftPackets_createPacket,
 	//    "MinecraftPackets::createPacket");
@@ -185,9 +193,12 @@ PacketHooks::PacketHooks() {
 			PacketHookArray[i] = addTableSwapHook((uintptr_t)(vft + 1), &PacketHandlerDispatcherInstance_handle, "Packet Hook");
 		}
 	}
+	END_ERROR_HANDLER
 }
 
 void PacketHooks::initPacketSender(SDK::PacketSender* sender) {
+	BEGIN_ERROR_HANDLER
 	uintptr_t* vtable = *reinterpret_cast<uintptr_t**>(sender);
 	SendToServerHook = addTableSwapHook((uintptr_t)(vtable + 2), PacketSender_sendToServer, "PacketSender::sendToServer");
+	END_ERROR_HANDLER
 }

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "JsScript.h"
+#include "util/ErrorHandler.h"
 
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>
@@ -586,4 +587,9 @@ JsValueRef JsScript::AsyncOperation::call() {
 	this->args.insert(this->args.begin(), this->callback);
 	Latite::getPluginManager().handleErrors(Chakra::CallFunction(this->callback, this->args.data(), static_cast<unsigned short>(this->args.size()), &obj));
 	return obj;
+}
+
+void JsScript::AsyncOperation::run() {
+	thr = std::make_shared<std::thread>(std::thread(initFunc, this));
+	thr->detach();
 }

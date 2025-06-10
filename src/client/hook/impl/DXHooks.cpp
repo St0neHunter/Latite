@@ -3,6 +3,7 @@
 #include "client/Latite.h"
 #include "client/render/Renderer.h"
 #include "sdk/common/client/game/Options.h"
+#include "util/ErrorHandler.h"
 
 namespace {
     typedef HRESULT(WINAPI* CreateSwapChainForCoreWindow_t)(
@@ -81,6 +82,7 @@ HRESULT WINAPI DXHooks::CreateSwapChainForCoreWindowHook(
     const DXGI_SWAP_CHAIN_DESC1* desc,
     IDXGIOutput* output,
     IDXGISwapChain1** swapChain) {
+    BEGIN_ERROR_HANDLER
 
     DXGI_SWAP_CHAIN_DESC1 modifiedDesc = *desc;
     if (tearingSupported && isForceDisableVSync) {
@@ -89,9 +91,11 @@ HRESULT WINAPI DXHooks::CreateSwapChainForCoreWindowHook(
 
     return origCreateSwapChain(factory, device, window, &modifiedDesc,
         output, swapChain);
+    END_ERROR_HANDLER
 }
 
 HRESULT __stdcall DXHooks::SwapChain_Present(IDXGISwapChain* chain, UINT SyncInterval, UINT Flags) {
+    BEGIN_ERROR_HANDLER
     if (Latite::getRenderer().hasInitialized()) {
         auto lock = Latite::getRenderer().lock();
         Latite::getRenderer().render();
@@ -118,6 +122,7 @@ HRESULT __stdcall DXHooks::SwapChain_Present(IDXGISwapChain* chain, UINT SyncInt
     }
 
     return PresentHook->oFunc<decltype(&SwapChain_Present)>()(chain, syncInterval, presentFlags);
+    END_ERROR_HANDLER
 }
 
 HRESULT __stdcall DXHooks::SwapChain_ResizeBuffers(
@@ -127,6 +132,7 @@ HRESULT __stdcall DXHooks::SwapChain_ResizeBuffers(
     UINT Height,
     DXGI_FORMAT NewFormat,
     UINT SwapChainFlags) {
+    BEGIN_ERROR_HANDLER
 
     Latite::getRenderer().reinit();
     UINT newFlags = SwapChainFlags;
@@ -136,17 +142,21 @@ HRESULT __stdcall DXHooks::SwapChain_ResizeBuffers(
 
     return ResizeBuffersHook->oFunc<decltype(&SwapChain_ResizeBuffers)>()(
         chain, BufferCount, Width, Height, NewFormat, newFlags);
+    END_ERROR_HANDLER
 }
 
 HRESULT __stdcall DXHooks::CommandQueue_ExecuteCommandLists(ID3D12CommandQueue* queue, UINT NumCommandLists,
     ID3D12CommandList* const* ppCommandLists) {
+    BEGIN_ERROR_HANDLER
     auto lock = Latite::getRenderer().lock();
     Latite::getRenderer().setCommandQueue(queue);
     return ExecuteCommandListsHook->oFunc<decltype(&CommandQueue_ExecuteCommandLists)>()(
         queue, NumCommandLists, ppCommandLists);
+    END_ERROR_HANDLER
 }
 
 DXHooks::DXHooks() : HookGroup("DirectX") {
+    BEGIN_ERROR_HANDLER
     ComPtr<IDXGIFactory> factory;
     ComPtr<IDXGISwapChain> swapChain;
     ComPtr<IDXGIAdapter> adapter;
@@ -233,4 +243,5 @@ DXHooks::DXHooks() : HookGroup("DirectX") {
     PresentHook->enable();
     ResizeBuffersHook->enable();
     if (cqueueVftable) ExecuteCommandListsHook->enable();
+    END_ERROR_HANDLER
 }

@@ -2,6 +2,7 @@
 #include "Hook.h"
 #include "util/logger.h"
 #include "MinHook.h"
+#include "util/ErrorHandler.h"
 #include "vhook/vtable_hook.h"
 
 Hook::Hook(uintptr_t target, void* detour, std::string const& hookName, bool tableSwap)
@@ -9,6 +10,7 @@ Hook::Hook(uintptr_t target, void* detour, std::string const& hookName, bool tab
 	: funcName(hookName)
 #endif
 {
+	BEGIN_ERROR_HANDLER
 
 	if (tableSwap) {
 		auto res = vh::hook(reinterpret_cast<LPVOID*>(target), detour, &this->funcPtr);
@@ -26,6 +28,7 @@ Hook::Hook(uintptr_t target, void* detour, std::string const& hookName, bool tab
 		Logger::Warn("Creation of hook {} failed with status {}", this->funcName, MH_StatusToString(res));
 #endif
 	}
+	END_ERROR_HANDLER
 }
 
 HookGroup::HookGroup(std::string const& groupName) 
@@ -39,6 +42,7 @@ HookGroup::HookGroup(std::string const& groupName)
 }
 
 std::shared_ptr<Hook> HookGroup::addHook(uintptr_t ptr, func_ptr_t detour, const char* name) {
+	BEGIN_ERROR_HANDLER
 #ifdef LATITE_DEBUG
 	auto newHook = std::make_shared<Hook>(ptr, detour, name);
 #else
@@ -46,9 +50,11 @@ std::shared_ptr<Hook> HookGroup::addHook(uintptr_t ptr, func_ptr_t detour, const
 #endif
 	hooks.emplace_back(newHook);
 	return newHook;
+	END_ERROR_HANDLER
 }
 
 std::shared_ptr<Hook> HookGroup::addTableSwapHook(uintptr_t ptr, func_ptr_t detour, const char* name) {
+	BEGIN_ERROR_HANDLER
 #ifdef LATITE_DEBUG
 	auto newHook = std::make_shared<Hook>(ptr, detour, name, true);
 #else
@@ -57,4 +63,5 @@ std::shared_ptr<Hook> HookGroup::addTableSwapHook(uintptr_t ptr, func_ptr_t deto
 #endif
 	hooks.emplace_back(newHook);
 	return newHook;
+	END_ERROR_HANDLER
 }
