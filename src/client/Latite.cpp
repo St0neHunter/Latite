@@ -444,13 +444,16 @@ std::vector<std::string> Latite::getLatiteUsers() {
 }
 
 void Latite::queueEject() noexcept {
+    BEGIN_ERROR_HANDLER
     auto app = winrt::Windows::UI::ViewManagement::ApplicationView::GetForCurrentView();
     app.Title(L"");
     this->shouldEject = true;
     CloseHandle(CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)FreeLibraryAndExitThread, dllInst, 0, nullptr));
+    END_ERROR_HANDLER
 }
 
 SDK::Font* Latite::getFont() {
+    BEGIN_ERROR_HANDLER
     switch (this->mcRendFont.getSelectedKey()) {
     case 0:
         return SDK::ClientInstance::get()->minecraftGame->minecraftFont;
@@ -460,6 +463,7 @@ SDK::Font* Latite::getFont() {
         Logger::Fatal(XOR_STRING("Unknown font selected: {}"), this->mcRendFont.getSelectedKey());
         throw std::runtime_error(XOR_STRING("Unknown font"));
     }
+    END_ERROR_HANDLER
 }
 
 void Latite::initialize(HINSTANCE hInst) {
@@ -574,6 +578,7 @@ static void blockModules(std::string_view moduleName, std::string_view serverNam
 }
 
 void Latite::updateModuleBlocking() {
+    BEGIN_ERROR_HANDLER
     auto inst = SDK::RakNetConnector::get();
     if (!inst) return;
 
@@ -592,6 +597,7 @@ void Latite::updateModuleBlocking() {
     else {
         
     }
+    END_ERROR_HANDLER
 }
 
 namespace {
@@ -717,6 +723,7 @@ std::wstring Latite::GetCurrentModuleFilePath(HMODULE hModule) {
 }
 
 void Latite::initSettings() {
+    BEGIN_ERROR_HANDLER
     {
         auto set = std::make_shared<Setting>("menuKey", LocalizeString::get("client.settings.menuKey.name"),
                                              LocalizeString::get("client.settings.menuKey.desc"));
@@ -860,6 +867,7 @@ void Latite::initSettings() {
         set->interval = FloatValue(0.1f);
         this->getSettings().addSetting(set);
     }
+    END_ERROR_HANDLER
 }
 
 void Latite::queueForUIRender(std::function<void(SDK::MinecraftUIRenderContext* ctx)> callback) {
@@ -875,6 +883,7 @@ void Latite::queueForDXRender(std::function<void(ID2D1DeviceContext* ctx)> callb
 }
 
 void Latite::initAsset(int resource, std::wstring const& filename) {
+    BEGIN_ERROR_HANDLER
 #ifdef DEBUG
     Logger::Info("Getting asset: {} ({})", util::WStrToStr(filename), resource);
 #endif
@@ -898,13 +907,17 @@ void Latite::initAsset(int resource, std::wstring const& filename) {
     auto ofs = std::ofstream(fullPath.c_str(), std::ios::binary);
     ofs << std::string(hFinal, hSize);
     ofs.flush();
+    END_ERROR_HANDLER
 }
 
 void Latite::initL10n() {
+    BEGIN_ERROR_HANDLER
     l10nData = LocalizeData();
+    END_ERROR_HANDLER
 }
 
 std::string Latite::getTextAsset(int resource) {
+    BEGIN_ERROR_HANDLER
     HRSRC hRes = FindResource((HMODULE)dllInst, MAKEINTRESOURCE(resource), MAKEINTRESOURCE(TEXTFILE));
     if (!hRes) {
         Logger::Fatal("Could not find text resource {}", resource);
@@ -916,6 +929,7 @@ std::string Latite::getTextAsset(int resource) {
     char* hFinal = (char*)LockResource(hData);
 
     return std::string(hFinal, hSize);
+    END_ERROR_HANDLER
 }
 
 namespace {
@@ -968,6 +982,7 @@ void Latite::initLanguageSetting() {
 }
 
 void Latite::detectLanguage() {
+    BEGIN_ERROR_HANDLER
     if (!this->getDetectLanguageSetting()) return;
 
     winrt::hstring topUserLanguage = winrt::Windows::System::UserProfile::GlobalizationPreferences::Languages().GetAt(0);
@@ -997,9 +1012,11 @@ void Latite::detectLanguage() {
             }
         }
     });
+    END_ERROR_HANDLER
 }
 
 void Latite::onUpdate(Event& evGeneric) {
+    BEGIN_ERROR_HANDLER
     auto& ev = reinterpret_cast<UpdateEvent&>(evGeneric);
     timings.update();
     auto now = std::chrono::system_clock::now();
@@ -1097,6 +1114,7 @@ void Latite::onUpdate(Event& evGeneric) {
         }
     }
 #endif
+    END_ERROR_HANDLER
 }
 
 void Latite::onKey(Event& evGeneric) {
@@ -1200,6 +1218,7 @@ void Latite::onRenderLayer(Event& evG) {
 }
 
 void Latite::onRenderOverlay(Event& evG) {
+    BEGIN_ERROR_HANDLER
     auto& ev = reinterpret_cast<RenderOverlayEvent&>(evG);
 
     if (getRenderer().getFontFamily2() != std::get<TextValue>(secondaryFont).str) {
@@ -1217,6 +1236,7 @@ void Latite::onRenderOverlay(Event& evG) {
     if (std::chrono::duration_cast<std::chrono::seconds>(now - time) > 5s) {
         Latite::writeServerIP();
     }
+    END_ERROR_HANDLER
 }
 
 void Latite::onPacketReceive(Event& evG) {
@@ -1225,10 +1245,13 @@ void Latite::onPacketReceive(Event& evG) {
 }
 
 void Latite::onTick(Event& ev) {
+    BEGIN_ERROR_HANDLER
     updateModuleBlocking();
+    END_ERROR_HANDLER
 }
 
 void Latite::loadLanguageConfig(std::shared_ptr<Setting> languageSetting) {
+    BEGIN_ERROR_HANDLER
     this->getSettings().forEach([&](std::shared_ptr<Setting> set) {
         if (set->name() == languageSetting->name()) {
             std::visit([&](auto&& obj) {
@@ -1237,9 +1260,11 @@ void Latite::loadLanguageConfig(std::shared_ptr<Setting> languageSetting) {
                 }, languageSetting->resolvedValue);
         }
         });
+    END_ERROR_HANDLER
 }
 
 void Latite::loadConfig(SettingGroup& gr) {
+    BEGIN_ERROR_HANDLER
     gr.forEach([&](std::shared_ptr<Setting> set) {
         this->getSettings().forEach([&](std::shared_ptr<Setting> modSet) {
             if (modSet->name() == set->name()) {
@@ -1250,9 +1275,11 @@ void Latite::loadConfig(SettingGroup& gr) {
             }
             });
         });
+    END_ERROR_HANDLER
 }
 
 void Latite::writeServerIP() {
+    BEGIN_ERROR_HANDLER
     std::string server;
     std::filesystem::path serverIPTextPath = util::GetLatitePath() / XOR_STRING("serverip.txt");
 
@@ -1275,4 +1302,5 @@ void Latite::writeServerIP() {
         }
     }
     lastServer = server;
+    END_ERROR_HANDLER
 }

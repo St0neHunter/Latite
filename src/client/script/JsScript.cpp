@@ -588,8 +588,3 @@ JsValueRef JsScript::AsyncOperation::call() {
 	Latite::getPluginManager().handleErrors(Chakra::CallFunction(this->callback, this->args.data(), static_cast<unsigned short>(this->args.size()), &obj));
 	return obj;
 }
-
-void JsScript::AsyncOperation::run() {
-	thr = std::make_shared<std::thread>(std::thread(initFunc, this));
-	thr->detach();
-}
